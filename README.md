@@ -7,11 +7,12 @@
 
 | | |
 |---|---|
-| **Student** | `Your full name` |
-| **Candidate registration number** | `Your registration number` |
+| **Student** | `Manya Dhwaneet Mehta`|
+|**Student ID**|`2013146`|
+| **Candidate registration number** | `100670` |
 | **CRS** | Artificial Intelligence |
 | **Course** | Python Programming (Summative Assessment, Scenario 1) |
-| **School** | `Your school name` |
+| **School** | `Udgam School for Children `|
 
 ![ShopImpact screenshot](docs/screenshot-dashboard.png)
 *(Add screenshots to `docs/`: the full dashboard, the input card with live preview, and a turtle drawing.)*
@@ -88,7 +89,7 @@ python -m unittest discover tests -v
 
 ## 6. Deployment instructions (Streamlit Community Cloud)
 
-1. Push all files to a public GitHub repository (name it like `IDAI102(StudentID)-YourName`).
+1. Push all files to a public GitHub repository (name it like `IDAI102(2013146)-Manya`).
 2. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
 3. Click **Create app / Deploy an app** → choose your repository, branch `main`, main file `app.py`.
 4. Click **Deploy**. When it is live, copy the URL and paste it at the top of this README.
