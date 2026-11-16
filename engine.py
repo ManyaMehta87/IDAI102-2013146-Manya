@@ -48,7 +48,7 @@ def is_green_choice(product_type, ethical):
     return is_eco_tier(product_type) or ethical
 
 
-def make_purchase(product_type, brand, price, currency, purchase_date=None, ethical_ticked=False):
+def make_purchase(product_type, brand, price, currency, purchase_date=None, ethical_ticked=False, note=""):
     """Build one purchase record (a dictionary) ready to store in the list."""
     brand = brand.strip() or "Unbranded / local"
     ethical = is_ethical_brand(brand, ethical_ticked)
@@ -62,6 +62,7 @@ def make_purchase(product_type, brand, price, currency, purchase_date=None, ethi
         "second_life": data.PRODUCT_TYPES[product_type]["second_life"],
         "green": is_green_choice(product_type, ethical),
         "co2": calculate_impact(price, currency, product_type, ethical),
+        "note": str(note).strip(),
     }
 
 
@@ -98,9 +99,10 @@ def purchases_in_month(purchases, year, month):
     return [p for p in purchases if p["date"].year == year and p["date"].month == month]
 
 
-def monthly_summary(purchases, year, month):
+def monthly_summary(purchases, year, month, avoided=None):
     """Totals for one month. Spend is converted to USD so currencies can mix."""
     items = purchases_in_month(purchases, year, month)
+    avoided_items = purchases_in_month(avoided or [], year, month)
     by_category = defaultdict(float)
     total_co2 = 0.0
     total_spend_usd = 0.0
@@ -119,6 +121,8 @@ def monthly_summary(purchases, year, month):
         "ethical_count": sum(1 for p in items if p["ethical"]),
         "second_life_count": sum(1 for p in items if p["second_life"]),
         "by_category": dict(by_category),
+        "avoided_count": len(avoided_items),
+        "avoided_co2": round(sum(a["co2"] for a in avoided_items), 2),
     }
 
 
@@ -168,6 +172,10 @@ def _rule_green_streak(purchases, s, goal):
     return len(last_three) == 3 and all(p["green"] for p in last_three)
 
 
+def _rule_mindful_pause(purchases, s, goal):
+    return s["avoided_count"] >= 1
+
+
 BADGE_RULES = {
     "first_step": _rule_first_step,
     "tracker": _rule_tracker,
@@ -176,18 +184,139 @@ BADGE_RULES = {
     "ethical": _rule_ethical,
     "second_life": _rule_second_life,
     "green_streak": _rule_green_streak,
+    "mindful_pause": _rule_mindful_pause,
 }
 
 
-def evaluate_badges(purchases, year, month, goal):
+def evaluate_badges(purchases, year, month, goal, avoided=None):
     """Return the list of badge ids currently earned."""
-    summary = monthly_summary(purchases, year, month)
+    summary = monthly_summary(purchases, year, month, avoided)
     return [badge_id for badge_id, rule in BADGE_RULES.items() if rule(purchases, summary, goal)]
 
 
 def new_badges(before, after):
     """Badge ids that are in `after` but were not in `before`."""
     return [b for b in after if b not in before]
+
+
+# ---------------------------------------------------------------------------
+# kindcart extras: impact decoder, transparency, budget swaps, comparisons, goals
+# ---------------------------------------------------------------------------
+def impact_level(product_type):
+    """'Low', 'Medium' or 'High' for the product type itself."""
+    m = data.PRODUCT_TYPES[product_type]["multiplier"]
+    if m <= data.IMPACT_LOW_MAX:
+        return "Low"
+    if m <= data.IMPACT_MEDIUM_MAX:
+        return "Medium"
+    return "High"
+
+
+def impact_score(product_type):
+    """0-100 score for the impact meter (100 = highest multiplier we know)."""
+    m = data.PRODUCT_TYPES[product_type]["multiplier"]
+    return min(100, round(100 * m / data.IMPACT_SCORE_MAX_MULTIPLIER))
+
+
+def explain_equivalents(kg):
+    """Impact Explained: turn kilograms into things people can picture (approximate)."""
+    eq = equivalents(kg)
+    eq["phone_charges"] = round(kg / data.KG_CO2_PER_PHONE_CHARGE)
+    return eq
+
+
+def explain_impact(price, currency, product_type, ethical=False):
+    """Transparency Notes: plain-English lines showing how the number was produced."""
+    info = data.PRODUCT_TYPES[product_type]
+    usd = to_usd(price, currency)
+    base = round(usd * info["multiplier"], 2)
+    notes = [f"Calculation: about ${usd:,.2f} x {info['multiplier']} kg CO2e per $ = {base} kg."]
+    if ethical:
+        notes.append(f"Ethical-brand adjustment: x {data.ETHICAL_BRAND_FACTOR} "
+                     "(self-declared or from our small curated list, not independently verified).")
+    notes.append("Status: ESTIMATED. The multiplier is an illustrative average for this type of product, "
+                 "not a measurement for this exact item or brand.")
+    return notes
+
+
+def budget_swaps(price, budget, currency, product_type):
+    """Green Within My Budget: greener types (following the swap chain), their
+    estimated cost, the kg saved, and whether they fit the budget."""
+    out = []
+    now = calculate_impact(price, currency, product_type)
+    current = data.PRODUCT_TYPES[product_type]["swap_to"]
+    while current is not None:                                   # walk the chain
+        est_cost = round(price * data.PRICE_FACTOR[current] / data.PRICE_FACTOR[product_type], 2)
+        alt = calculate_impact(est_cost, currency, current)
+        out.append({"type": current, "est_cost": est_cost, "saved": round(max(now - alt, 0.0), 2),
+                    "fits": est_cost <= budget})
+        current = data.PRODUCT_TYPES[current]["swap_to"]
+    return sorted(out, key=lambda r: r["saved"], reverse=True)
+
+
+def compare_products(type_a, price_a, type_b, price_b, currency, ethical_a=False, ethical_b=False):
+    """Compare two planned purchases side by side (survey request: 'compare products at a glance').
+    Returns each side's CO2e and impact level, which one is greener, and the difference."""
+    a = calculate_impact(price_a, currency, type_a, ethical_a)
+    b = calculate_impact(price_b, currency, type_b, ethical_b)
+    if a == b:
+        winner = "tie"
+    else:
+        winner = "a" if a < b else "b"
+    return {"a_kg": a, "b_kg": b, "a_level": impact_level(type_a), "b_level": impact_level(type_b),
+            "winner": winner, "difference_kg": round(abs(a - b), 2),
+            "greener_pct": round(100 * abs(a - b) / max(a, b)) if max(a, b) > 0 else 0}
+
+
+def previous_month(year, month):
+    return (year - 1, 12) if month == 1 else (year, month - 1)
+
+
+def compare_months(purchases, year, month):
+    """Monthly Progress: this month's CO2 against last month's."""
+    now = monthly_summary(purchases, year, month)
+    py, pm = previous_month(year, month)
+    prev = monthly_summary(purchases, py, pm)
+    change = None
+    if prev["count"] and prev["total_co2"] > 0:
+        change = round(100 * (now["total_co2"] - prev["total_co2"]) / prev["total_co2"])
+    return {"prev_total": prev["total_co2"], "prev_count": prev["count"], "change_pct": change}
+
+
+def make_avoided(product_type, price, currency, purchase_date=None):
+    """A paused purchase: the CO2 you did NOT emit by thinking twice."""
+    return {"date": purchase_date or date.today(), "type": product_type, "price": round(float(price), 2),
+            "currency": currency, "co2": calculate_impact(price, currency, product_type)}
+
+
+def quick_add_items(purchases, n=3):
+    """Quick Add: the n most recent distinct (type, brand) combinations with their last price."""
+    seen, out = set(), []
+    for p in reversed(purchases):
+        key = (p["type"], p["brand"])
+        if key not in seen:
+            seen.add(key)
+            out.append(p)
+        if len(out) == n:
+            break
+    return out
+
+
+def goal_progress(goal_id, summary, goal_kg):
+    """Personal Eco Goals: returns (current, target, done) for one goal id."""
+    if goal_id == "second_life":
+        cur, tgt = summary["second_life_count"], data.GOALS[goal_id]["target"]
+        return cur, tgt, cur >= tgt
+    if goal_id == "green_share":
+        cur = summary["green_share"] if summary["count"] >= 3 else 0
+        return cur, 60, cur >= 60
+    if goal_id == "pause":
+        cur, tgt = summary["avoided_count"], data.GOALS[goal_id]["target"]
+        return cur, tgt, cur >= tgt
+    if goal_id == "under_goal":
+        done = summary["count"] >= 3 and summary["total_co2"] <= goal_kg
+        return summary["total_co2"], goal_kg, done
+    return 0, 1, False
 
 
 # ---------------------------------------------------------------------------
@@ -221,3 +350,9 @@ def demo_purchases(today=None):
         d = anchor.replace(day=min(day, 28))
         out.append(make_purchase(ptype, brand, price, "USD ($)", d, ethical))
     return out
+
+
+def demo_avoided(today=None):
+    """One paused purchase this month for the demo."""
+    today = today or date.today()
+    return [make_avoided("New electronics", 150, "USD ($)", today.replace(day=min(today.day, 28)))]

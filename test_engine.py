@@ -1,7 +1,9 @@
 """Unit tests for engine.py. Run with:  python -m unittest discover tests -v"""
 import os, sys, unittest
 from datetime import date
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)                    # works when this file sits next to engine.py (flat repo)
+sys.path.insert(0, os.path.dirname(HERE))   # works when it sits in a tests/ folder
 import data, engine
 
 
@@ -97,6 +99,92 @@ class TestMonthlyAndBadges(unittest.TestCase):
 
     def test_new_badges_diff(self):
         self.assertEqual(engine.new_badges(["a"], ["a", "b"]), ["b"])
+
+
+class TestKindcartFeatures(unittest.TestCase):
+    def test_impact_levels(self):
+        self.assertEqual(engine.impact_level("Second-hand books"), "Low")
+        self.assertEqual(engine.impact_level("New furniture"), "Medium")
+        self.assertEqual(engine.impact_level("Meat & dairy groceries"), "High")
+        self.assertEqual(engine.impact_score("Meat & dairy groceries"), 100)
+
+    def test_explain_equivalents(self):
+        eq = engine.explain_equivalents(1.0)
+        self.assertEqual(eq["phone_charges"], 125)
+
+    def test_explain_impact_mentions_estimate_and_ethical(self):
+        notes = engine.explain_impact(100, "USD ($)", "Leather shoes", ethical=True)
+        text = " ".join(notes)
+        self.assertIn("ESTIMATED", text)
+        self.assertIn("Ethical-brand", text)
+
+    def test_budget_swaps_follow_chain_and_fit(self):
+        swaps = engine.budget_swaps(100, 90, "USD ($)", "Meat & dairy groceries")
+        self.assertEqual({s["type"] for s in swaps}, {"Plant-based groceries", "Local seasonal produce"})
+        for s in swaps:
+            self.assertGreater(s["saved"], 0)
+        produce = [s for s in swaps if s["type"] == "Local seasonal produce"][0]
+        self.assertTrue(produce["fits"])          # 85 <= 90
+
+    def test_green_can_cost_more_and_budget_says_so(self):
+        swaps = engine.budget_swaps(100, 100, "USD ($)", "Leather shoes")
+        self.assertFalse(swaps[0]["fits"])        # recycled shoes est. 115 > 100
+
+    def test_no_swaps_for_greenest(self):
+        self.assertEqual(engine.budget_swaps(10, 10, "USD ($)", "Second-hand books"), [])
+
+    def test_compare_months(self):
+        demo = engine.demo_purchases(date(2026, 6, 15))
+        cmp_ = engine.compare_months(demo, 2026, 6)
+        self.assertLess(cmp_["change_pct"], 0)    # June is lower than May
+        self.assertIsNone(engine.compare_months(demo, 2026, 1)["change_pct"])
+
+    def test_previous_month_wraps_year(self):
+        self.assertEqual(engine.previous_month(2026, 1), (2025, 12))
+
+    def test_avoided_and_mindful_pause_badge(self):
+        avoided = [engine.make_avoided("New electronics", 100, "USD ($)", date(2026, 6, 2))]
+        self.assertEqual(avoided[0]["co2"], 45.0)
+        got = engine.evaluate_badges([], 2026, 6, 60, avoided)
+        self.assertIn("mindful_pause", got)
+        self.assertNotIn("mindful_pause", engine.evaluate_badges([], 2026, 6, 60))
+
+    def test_quick_add_distinct_recent(self):
+        items = [engine.make_purchase("New books", "A", 5, "USD ($)", date(2026, 6, d)) for d in (1, 2)]
+        items.append(engine.make_purchase("Leather shoes", "B", 50, "USD ($)", date(2026, 6, 3)))
+        top = engine.quick_add_items(items, 3)
+        self.assertEqual(len(top), 2)
+        self.assertEqual(top[0]["brand"], "B")
+
+    def test_goal_progress(self):
+        demo = engine.demo_purchases(date(2026, 6, 15))
+        s = engine.monthly_summary(demo, 2026, 6)
+        self.assertTrue(engine.goal_progress("second_life", s, 60)[2])
+        self.assertTrue(engine.goal_progress("under_goal", s, 60)[2])
+        self.assertFalse(engine.goal_progress("pause", s, 60)[2])
+
+    def test_note_is_stored(self):
+        p = engine.make_purchase("New books", "A", 5, "USD ($)", date(2026, 6, 1), note=" gift ")
+        self.assertEqual(p["note"], "gift")
+
+    def test_every_type_has_price_data(self):
+        for name in data.PRODUCT_TYPES:
+            self.assertIn(name, data.TYPICAL_PRICE_USD)
+            self.assertIn(name, data.PRICE_FACTOR)
+
+
+    def test_every_swap_target_has_quality_tip(self):
+        for info in data.PRODUCT_TYPES.values():
+            if info["swap_to"]:
+                self.assertIn(info["swap_to"], data.QUALITY_TIPS)
+
+
+    def test_compare_products(self):
+        r = engine.compare_products("Fast-fashion clothing", 50, "Second-hand clothing", 20, "USD ($)")
+        self.assertEqual(r["winner"], "b")
+        self.assertEqual((r["a_kg"], r["b_kg"]), (25.0, 1.6))
+        self.assertEqual(r["difference_kg"], 23.4)
+        self.assertEqual(engine.compare_products("New books", 10, "New books", 10, "USD ($)")["winner"], "tie")
 
 
 if __name__ == "__main__":

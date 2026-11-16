@@ -7,6 +7,7 @@ tiny "SVG turtle" with the SAME ideas and commands as Python's turtle
 Instead of drawing in a window, it records every move and renders an animated
 SVG, so the drawing appears to be drawn stroke by stroke inside the web page.
 """
+import json
 import math
 
 
@@ -100,38 +101,77 @@ class SVGTurtle:
         return d + (" Z" if close else "")
 
     # ----- render -----------------------------------------------------
-    def to_html(self, caption="", bg="transparent", seconds_per_stroke=0.35, nonce=0):
-        """Return a self-contained HTML page with the animated drawing."""
-        parts = []
-        delay = 0.0
-        for f in self._fills:                       # fills fade in first, softly
+    def to_html(self, caption="", bg="transparent", speed=300, nonce=0):
+        """Self-contained HTML page: the drawing is drawn stroke by stroke while a
+        little turtle walks along the path. Tap the drawing to replay it."""
+        parts, delay = [], 0.0
+        timeline = []                                    # (delay, duration) per stroke
+        for s in self._strokes:
+            pts = s["points"]
+            length = sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(pts, pts[1:]))
+            dur = max(0.12, length / speed)
+            timeline.append((delay, dur))
             parts.append(
-                f'<path d="{self._path(f["points"], True)}" fill="{f["color"]}" '
-                f'opacity="0" class="fill" style="animation-delay:{delay:.2f}s"/>'
-            )
-            delay += 0.15
-        for s in self._strokes:                     # then strokes are "drawn"
-            parts.append(
-                f'<path d="{self._path(s["points"])}" fill="none" stroke="{s["color"]}" '
+                f'<path d="{self._path(pts)}" fill="none" stroke="{s["color"]}" '
                 f'stroke-width="{s["size"]}" stroke-linecap="round" stroke-linejoin="round" '
-                f'pathLength="1" class="stroke" style="animation-delay:{delay:.2f}s;'
-                f'animation-duration:{seconds_per_stroke}s"/>'
+                f'pathLength="1" class="stroke" style="--d:{delay:.2f}s;--t:{dur:.2f}s"/>'
             )
-            delay += seconds_per_stroke * 0.8
+            delay += dur + 0.04
+        fills = "".join(                                 # fills fade in once the outline is finished
+            f'<path d="{self._path(f["points"], True)}" fill="{f["color"]}" opacity="0" class="fill" '
+            f'style="--d:{delay:.2f}s"/>' for f in self._fills)
         cap = f'<div class="cap">{caption}</div>' if caption else ""
         return f"""<!-- run {nonce} -->
 <style>
- body{{margin:0;background:{bg};font-family:Verdana,sans-serif;text-align:center}}
- svg{{max-width:100%;height:auto}}
- .stroke{{stroke-dasharray:1;stroke-dashoffset:1;animation:draw linear forwards}}
- .fill{{animation:fade .8s ease forwards}}
+ html,body{{margin:0;background:{bg};font-family:'Montserrat','Segoe UI',sans-serif;text-align:center;overflow:hidden}}
+ svg{{max-width:100%;height:auto;cursor:pointer}}
+ .play .stroke{{stroke-dasharray:1;stroke-dashoffset:1;animation:draw var(--t) linear var(--d) forwards}}
+ .play .fill{{animation:fade .9s ease var(--d) forwards}}
+ .stroke{{stroke-dasharray:1;stroke-dashoffset:1}}
  @keyframes draw{{to{{stroke-dashoffset:0}}}}
- @keyframes fade{{to{{opacity:.55}}}}
- .cap{{font-size:15px;color:#3F6B4F;font-weight:bold;padding-top:2px}}
+ @keyframes fade{{to{{opacity:.6}}}}
+ .cap{{font-size:14px;color:#2F5D3E;font-weight:700;padding-top:2px}}
+ .replay{{font-size:12px;color:#6F9E7B;cursor:pointer;border:0;background:none;font-weight:600}}
 </style>
-<svg viewBox="0 0 {self.width} {self.height}" width="{self.width}" height="{self.height}">
-{''.join(parts)}
-</svg>{cap}"""
+<svg id="art" class="play" viewBox="0 0 {self.width} {self.height}" width="{self.width}" height="{self.height}">
+{fills}{''.join(parts)}
+<g id="tt" opacity="0"><ellipse cx="0" cy="0" rx="11" ry="8" fill="#6F9E7B" stroke="#2F5D3E" stroke-width="2"/>
+<circle cx="13" cy="0" r="5" fill="#8FBF98" stroke="#2F5D3E" stroke-width="2"/>
+<circle cx="15" cy="-1.5" r="1" fill="#25352B"/>
+<ellipse cx="-4" cy="-8" rx="3" ry="2" fill="#8FBF98"/><ellipse cx="-4" cy="8" rx="3" ry="2" fill="#8FBF98"/></g>
+</svg>
+{cap}<button class="replay" id="rp">\u21BB tap to replay</button>
+<script>
+ const TL = {json.dumps([[round(a, 3), round(b, 3)] for a, b in timeline])};
+ const svg = document.getElementById('art'), tt = document.getElementById('tt');
+ const strokes = Array.from(svg.querySelectorAll('.stroke'));
+ const lens = strokes.map(p => p.getTotalLength());
+ let raf = null;
+ function walk(t0){{
+   const t = (performance.now() - t0) / 1000;
+   let shown = false;
+   for (let i = 0; i < strokes.length; i++){{
+     const [d, du] = TL[i];
+     if (t >= d && t <= d + du){{
+       const at = ((t - d) / du) * lens[i], p = strokes[i].getPointAtLength(at);
+       const q = strokes[i].getPointAtLength(Math.min(lens[i], at + 1.5));
+       const a = Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI;
+       tt.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ') rotate(' + a + ')');
+       tt.setAttribute('opacity', 1); shown = true; break;
+     }}
+   }}
+   const end = TL.length ? TL[TL.length-1][0] + TL[TL.length-1][1] : 0;
+   if (t < end + 0.2){{ raf = requestAnimationFrame(() => walk(t0)); }}
+   else {{ tt.setAttribute('opacity', 0); }}
+ }}
+ function start(){{
+   cancelAnimationFrame(raf); svg.classList.remove('play'); void svg.getBoundingClientRect();
+   svg.classList.add('play'); tt.setAttribute('opacity', 0);
+   if (strokes.length) walk(performance.now());
+ }}
+ svg.addEventListener('click', start); document.getElementById('rp').addEventListener('click', start);
+ start();
+</script>"""
 
 
 # ---------------------------------------------------------------------------

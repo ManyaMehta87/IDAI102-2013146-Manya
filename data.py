@@ -179,3 +179,86 @@ KG_CO2_PER_KM_DRIVEN = 0.21
 KG_CO2_ABSORBED_PER_TREE_PER_MONTH = 1.75   # about 21 kg per tree per year
 
 DEFAULT_MONTHLY_GOAL_KG = 60.0
+
+
+# ===========================================================================
+# 6. kindcart additions: budget logic, impact levels, goals, garden
+# ===========================================================================
+# Typical price (in USD) used as a sensible default when a product type is chosen (Quick Add).
+TYPICAL_PRICE_USD = {
+    "Fast-fashion clothing": 30, "Second-hand clothing": 12, "Leather shoes": 90,
+    "Recycled-material shoes": 80, "New electronics": 300, "Refurbished electronics": 180,
+    "Meat & dairy groceries": 25, "Packaged snacks": 6, "Plant-based groceries": 20,
+    "Local seasonal produce": 12, "Single-use plastic goods": 8, "Reusable household goods": 15,
+    "New furniture": 200, "Second-hand furniture": 80, "Conventional cosmetics": 15,
+    "Refill / zero-waste cosmetics": 14, "New books": 15, "Second-hand books": 5,
+}
+
+# Typical price relative to the conventional version (1.0 = same price).
+# Illustrative: used for "Green Within My Budget" so the app never assumes green = expensive.
+PRICE_FACTOR = {name: 1.0 for name in PRODUCT_TYPES}
+PRICE_FACTOR.update({
+    "Second-hand clothing": 0.40, "Recycled-material shoes": 1.15, "Refurbished electronics": 0.65,
+    "Plant-based groceries": 0.80, "Local seasonal produce": 0.85, "Reusable household goods": 1.30,
+    "Second-hand furniture": 0.50, "Refill / zero-waste cosmetics": 0.90, "Second-hand books": 0.40,
+})
+
+# Impact levels (kg CO2e per USD): Low <= 0.20 < Medium <= 0.45 < High
+IMPACT_LOW_MAX = 0.20
+IMPACT_MEDIUM_MAX = 0.45
+IMPACT_SCORE_MAX_MULTIPLIER = 0.90      # the highest multiplier = score 100
+
+KG_CO2_PER_PHONE_CHARGE = 0.008          # about 8 g per full smartphone charge (approx.)
+
+# Personal eco goals the user can pick (progress is computed in engine.goal_progress)
+GOALS = {
+    "second_life": {"emoji": "\u267B\ufe0f", "name": "Buy 2 second-hand, refurbished or refill items", "target": 2},
+    "green_share": {"emoji": "\U0001F33F", "name": "Make 60% of my purchases green choices", "target": 60},
+    "pause":       {"emoji": "\u23F8\ufe0f", "name": "Pause 1 impulse buy", "target": 1},
+    "under_goal":  {"emoji": "\U0001F3AF", "name": "Stay under my monthly CO\u2082 goal (3+ purchases)", "target": None},
+}
+DEFAULT_GOAL_IDS = ["second_life", "pause"]
+
+# Virtual garden: every badge earned grows one plant (same order as BADGES).
+GARDEN_PLANTS = ["\U0001F331", "\U0001F33F", "\U0001F337", "\U0001F33B", "\U0001F333", "\U0001F338", "\U0001F340", "\U0001FAB4"]
+
+BADGES["mindful_pause"] = {"emoji": "\u23F8\ufe0f", "name": "Mindful Pause",
+                           "how": "Pause a purchase using 'Before you buy'."}
+
+# Pip, the mascot: image file for each emotional state and the little mood pill text.
+PIP_STATES = {
+    "before":   {"file": "pip_before.png",   "pill": "Pip is curious \U0001F331"},
+    "learning": {"file": "pip_learning.png", "pill": "Pip is learning \U0001F33F"},
+    "excited":  {"file": "pip_excited.png",  "pill": "Pip is happy \U0001F31F"},
+    "goal":     {"file": "pip_goal.png",     "pill": "Pip is thriving \U0001F333"},
+}
+
+# Things Pip says when you tap or hover over it (also mixed with eco tips and quotes).
+PIP_CHATTER = [
+    "Ooh! Let's check the impact of this one.",
+    "Wait! I found another option you might like.",
+    "One small choice, one happy planet!",
+    "We're improving, not chasing perfection.",
+    "LOOK AT US GROWING! \U0001F331",
+    "Psst... second-hand finds are my favourite!",
+    "Tap me anytime. I have lots of eco tips!",
+    "Every green choice is a tiny hug for the Earth.",
+]
+
+# Survey-driven: 82% of respondents consider QUALITY (and 47% reviews) before buying, so every
+# greener swap comes with a short "keep the quality" tip.
+QUALITY_TIPS = {
+    "Second-hand clothing": "Check seams, zips and fabric wear, and wash before first use.",
+    "Recycled-material shoes": "Read reviews on comfort and durability; good soles last for years.",
+    "Refurbished electronics": "Choose certified sellers that include a warranty and a return window.",
+    "Plant-based groceries": "Check reviews and try a small pack first to find a taste you like.",
+    "Local seasonal produce": "In-season produce is often fresher and tastier, so quality rises too.",
+    "Reusable household goods": "Pick sturdy materials (steel, glass) and read durability reviews.",
+    "Second-hand furniture": "Test joints and drawers, and look for solid wood or metal frames.",
+    "Refill / zero-waste cosmetics": "Check the ingredient list and do a patch test, as with any product.",
+    "Second-hand books": "Check the edition and that the pages are complete and readable.",
+}
+
+# Survey facts shown on the Home page (small survey, clearly labelled).
+SURVEY_N = 17
+SURVEY_DIFFICULT_PCT = 76.5     # found choosing a greener product difficult

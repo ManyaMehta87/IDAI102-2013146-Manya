@@ -1,4 +1,4 @@
-# ShopImpact: Design Document (Stages 1 to 4)
+# kindcart. (a ShopImpact experience): Design Document (Stages 1 to 4)
 
 ## 1. Problem statement
 
@@ -6,7 +6,7 @@
 >
 > A shopper can compare two jumpers by price, brand and colour in seconds, yet cannot see that one carries roughly six times the carbon footprint of the other. The seller knows the supply chain, the buyer sees only the price. This **information asymmetry** means that even people who *want* to shop greener are guessing, and guilt-heavy carbon calculators make them feel judged rather than helped.
 >
-> **ShopImpact** closes that gap *at the moment of decision*. Before the shopper pays, the app attaches a second price tag, the estimated CO₂e, shows what a greener swap would save, and rewards good choices with badges and a friendly turtle guide. The goal is awareness, empowerment and fun, never guilt.
+> **kindcart.** (the friendly product identity of ShopImpact) closes that gap *at the moment of decision*. Before the shopper pays, the app attaches a second price tag, the estimated CO₂e, shows what a greener swap would save, and rewards good choices with badges, a growing virtual garden and a friendly sprout guide named **Pip**. The goal is awareness, empowerment and fun, never guilt.
 
 **Goal:** help everyday shoppers see the hidden environmental cost of what they buy and gently motivate them to choose greener options.
 
@@ -27,55 +27,101 @@
 
 **Design principles:** (1) show the number *before* the purchase, (2) always offer a swap, never a scolding, (3) celebrate small wins, (4) large, readable type for everyone.
 
-## 3. Feature plan (mind-map sorted)
+## 3. Stakeholders and the problems they face
 
-| Must-have (compulsory) | Nice-to-have (optional, all built) |
+| Stakeholder | Possible problem | Our response |
+|---|---|---|
+| Shoppers | Confusing data and too many inputs | Simple interface, defaults, plain-language explanations |
+| Students | Limited budgets | Green Within My Budget shows cost-aware alternatives |
+| Families | Different shopping needs | Flexible categories, shopping journal, personal goals |
+| Ethical brands | Unsupported or incorrect claims | Transparency notes; ethical status is clearly labelled as self-declared |
+| Retailers | Brands may be unfairly classified | Every estimate explains its basis; brand names in suggestions are examples only |
+| App developers | Wrong calculations or missing data | Input validation, modular code, 33 unit tests |
+| Environment-conscious organisations | Misleading environmental claims | Assumptions and limitations shown on screen and in the README |
+
+**User problems and our solutions**
+
+| Problem shoppers face | Feature |
 |---|---|
-| Input fields: product type, price, brand | Tara the mascot guide with moods and speech bubble |
-| Real-time CO₂ estimate (live preview) | Random eco tip after every purchase |
-| Monthly dashboard: spend, CO₂, charts | Motivational quotes with "New quote" button |
-| Badges (Eco Saver, Low Impact Shopper + 5 more) | High-contrast / larger-text accessibility mode |
-| Greener-alternatives list for every product type | Currency selector (USD, INR, EUR, GBP) |
-| Turtle graphic on eco-friendly choices | Personal monthly CO₂ goal slider + traffic-light status |
-| | "What-if" swap savings and real-world equivalents (km driven, tree-months) |
-| | CSV export and import, undo last purchase, demo data |
-| | Animated turtle drawings (leaf, badge, footprint, sprout) |
+| Don't know which products have higher impact | **Impact Decoder**: instant estimate, impact level and 0 to 100 meter |
+| Don't understand carbon numbers | **Impact Explained**: km driven, phone charges, tree-months |
+| Don't know greener options | **Green swaps** with "use this swap" |
+| Green seems expensive | **Green Within My Budget**: estimated cost and "fits your budget" flag |
+| Forget what they bought | **Shopping Journal** (dated cards with notes) |
+| Can't tell if they are improving | **Monthly Progress**: this month vs last month |
+| Feel guilty | **No-Guilt Feedback** from Pip |
+| Don't trust sustainability claims | **Transparency Notes**: "why this number?", estimated vs self-declared |
+| Logging is tedious | **Quick Add**: typical prices as defaults and one-tap re-log of recent items |
+| Don't know where to begin | **Personal Eco Goals** and **Before You Buy** pause |
 
-## 4. Visual style
+## 3b. Feature plan
 
-**Palette (pastel earth tones):** beige `#F4F1E8` (background), sage `#7FB08A` (primary), forest `#3F6B4F` (headings), sky `#DCEBF2` (metric cards), sand `#EFE4C8` (badges, bubbles), soft terracotta `#E3B7A0` (ribbons).
-**Why:** greens and blues signal nature and calm, beige keeps contrast gentle, and the traffic-light chips (green / amber / red) are softened so "over goal" never feels like an alarm.
-**Typography:** 18 px base text (21 px in high-contrast mode), 2.6 rem title, 2.2 rem metric values so the important numbers stand out.
+| Must-have (compulsory) | Creative extras (all built) |
+|---|---|
+| Input fields: product type, price, brand | Pip the mascot with 4 emotional states and speech bubble |
+| Real-time CO₂ estimate (live preview) | Home screen with explore cards and monthly progress |
+| Monthly dashboard: spend, CO₂, charts | Before You Buy pause (CO₂ avoided is tracked) |
+| 8 badges incl. Eco Saver and Low Impact Shopper | Virtual garden: each badge grows a plant |
+| Greener-alternatives list for every product type | Personal eco goals, eco fact of the day, quotes |
+| Turtle graphics on eco-friendly choices | High-contrast mode, currency selector, CSV import/export, demo data |
+
+## 4. Visual style and mascot
+
+**Brand:** *kindcart.* with the tagline "Shop mindfully. Grow gently." and a cart-and-sprout logo.
+**Palette (soft sage and cream):** cream `#FBFBF8` (background), sage `#6F9E7B` (primary), forest `#2F5D3E` (headings and wordmark), pale green `#E9F1E3` (banners, bubbles), light grey-green `#F3F4F1` (stat cards), sand `#F5EFD8` (badges and quotes).
+**Why:** greens signal nature and calm, cream keeps contrast gentle, and the traffic-light chips are softened so "over goal" never feels like an alarm.
+**Typography:** Montserrat (fallback Segoe UI), 17 px base text (20 px in high-contrast mode), large metric values.
+**Motion design:** Pip tilts toward the pointer, hops and sparkles on tap or hover, types out its speech and shares an eco tip every ~20 seconds; the turtle drawing is traced by a walking turtle and can be replayed; buttons, cards, badges and garden plants lift or wiggle on hover; a `prefers-reduced-motion` rule switches animations off for users who need calm screens.
+
+**Mascot, Pip the sprout, has four emotional states:**
+
+| State | When it appears | Image |
+|---|---|---|
+| Curious (droopy) | Before the user has logged or learned anything | `pip_before.png` |
+| Learning (waving) | Exploring impacts and swaps, or after a higher-impact purchase | `pip_learning.png` |
+| Excited | After an eco-friendly choice or a mindful pause | `pip_excited.png` |
+| Thriving (gardener) | After reaching a goal or earning a badge, or a month well within goal | `pip_goal.png` |
 
 ## 5. Wireframe (desktop)
 
 ```
 +----------------------------------------------------------------------------------+
-| SIDEBAR            |  [Tara]   ShopImpact: see the hidden cost before you buy    |
-| Tara's tour        |  (mascot) ( Tara says: speech bubble that reacts )          |
-| Currency [v]       |----------------------------------------------------------   |
-| Monthly goal ----o |  INPUT CARD                                                 |
-| High-contrast [ ]  |  [Product type v] [Brand........] [Price] [Date]            |
-| [Load demo data]   |  [ ] Certified ethical brand                                |
-| [Undo] [Clear]     |  Est. CO2e: 12.4 kg | chip: Green choice | swap saves 5 kg  | 
-| [Download CSV]     |  > Greener options (expander)              [ + Log purchase]|
-| [Import CSV]       |----------------------------------------------------------   |
-|                    |  DASHBOARD (centre)            |  SIDE PANEL                |
-|                    |  Month [v]                     |  MY BADGES (grid, locked   |
-|                    |  [Spend][CO2][Green %][Count]  |  ones greyed with "how")   |
-|                    |  Status banner + progress bar  |  TARA DRAWS (animated      |
-|                    |  Tabs: Category | Trend | List |  turtle: leaf/badge/foot)  |
-|                    |  (bar charts / table)          |  Eco tip  |  Quote         |
+| [logo] kindcart.                                          ( Pip is happy pill )  |
+| Shop mindfully. Grow gently.                                                     |
+| ( Home | Log a purchase | My impact | Green swaps | My achievements )  <- top nav |
+|----------------------------------------------------------------------------------|
+| HOME                                                                             |
+| +-- banner ------------------------------------------------------------------+   |
+| | [Pip]  Hey, shopper!  Ready to make a little difference today?              |   |
+| |        Small choices. Bigger impact.                                        |   |
+| +-----------------------------------------------------------------------------+   |
+| [ Pip says: ... ]                                                                |
+| [12 Purchases logged] [3 Eco badges earned] [x kg avoided by pausing]            |
+| Your monthly progress  [=========70%=====      ]   -12% vs last month            |
+| Explore your shopping world                                                      |
+| [ Log a purchase ] [ My impact ]                                                 |
+| [ Green swaps    ] [ My achievements ]                                           |
+| [ My personal eco goals ]            [ Eco fact of the day ] [ quote ]           |
+|----------------------------------------------------------------------------------|
+| LOG A PURCHASE:  Pip bubble | Quick add chips | Input card | Impact decoder      |
+|   (meter, equivalents, why-this-number) | Before you buy | [Log purchase]          |
+|   -> result card: message, tip, goal/badge notices, turtle drawing               |
+| MY IMPACT:  month picker, 4 metrics, status bar, tabs (category, trend, journal) |
+|   side: goals, turtle drawing                                                    |
+| GREEN SWAPS: product, usual price, budget -> swap cards with [Use this swap]     |
+| MY ACHIEVEMENTS: badge grid | virtual garden | goals | turtle drawing            |
 +----------------------------------------------------------------------------------+
 ```
 
-*(Add your hand-drawn or Canva wireframe photo to `docs/wireframe.png` as well, and reference it in the README.)*
+![Wireframes](wireframe.png)
 
-**Mobile:** Streamlit stacks the columns vertically: header, inputs, dashboard, then badges and turtle.
+*A clean digital wireframe is in `wireframe.png`. Add your own hand-drawn sketch photo as `sketch.jpg` too.*
+
+**Mobile:** Streamlit stacks the columns vertically; the top navigation wraps onto two lines.
 
 ## 6. Python logic design (Stage 2)
 
-**Files:** `data.py` (curated data), `engine.py` (pure logic), `turtle_art.py` (drawings), `mascot.py` (Tara), `app.py` (interface), `tests/` (unit tests).
+**Files:** `data.py` (curated data), `engine.py` (pure logic), `turtle_art.py` (drawings), `mascot.py` (Pip images), `pip_assets.py` and the PNG files (mascot and logo), `app.py` (interface), `test_engine.py` (unit tests).
 
 **Data structures**
 - `purchases`: a **list** of **dictionaries** `{date, type, brand, price, currency, ethical, second_life, green, co2}`
@@ -88,7 +134,11 @@
 2. If the brand is ethical (ticked or on the curated list): `× 0.85`
 3. A product is *eco-tier* if its multiplier ≤ 0.20 kg per USD; a purchase is a *green choice* if it is eco-tier **or** from an ethical brand.
 4. Swap saving = footprint now − footprint of the type named in `swap_to`.
-5. Equivalents: 0.21 kg CO₂ per km driven; one tree absorbs about 1.75 kg per month (both approximate).
+5. Equivalents: 0.21 kg CO₂ per km driven; one tree absorbs about 1.75 kg per month; one phone charge is about 0.008 kg (all approximate).
+6. Impact level: Low ≤ 0.20, Medium ≤ 0.45, High above (kg per USD). Impact score = multiplier ÷ 0.90 × 100.
+7. Green Within My Budget: alternative cost = usual price × (alternative price factor ÷ current price factor). Green alternatives can cost more (for example reusables upfront) and the app says so.
+8. Monthly progress: change % = (this month − last month) ÷ last month × 100.
+9. Paused purchase: CO₂ avoided = what the purchase would have cost in CO₂e.
 
 **Badge rules (evaluated for the month of the latest purchase)**
 
@@ -101,6 +151,7 @@
 | Ethical Brand Champion | ≥ 3 ethical-brand purchases in the month |
 | Second-Life Hero | ≥ 2 second-hand / refurbished / refill purchases in the month |
 | Green Streak | last 3 purchases were all green choices |
+| Mindful Pause | paused at least 1 purchase with *Before you buy* in the month |
 
 **Honesty note:** multipliers are illustrative spend-based estimates built to show *relative* differences between choices. They are not a certified life-cycle assessment.
 
@@ -118,7 +169,7 @@ Python's `turtle` module draws in a desktop window and needs Tk, which a cloud s
 ## 8. Testing (Stage 4)
 
 ### 8.1 Automated tests
-`python -m unittest discover tests -v` runs 19 tests covering the formula, currency conversion, zero or negative prices, ethical-brand discount, swap savings, monthly totals, empty months, traffic-light status and every badge rule. **All 19 pass.**
+`python -m unittest discover tests -v` runs 33 tests covering the formula, currency conversion, zero or negative prices, ethical-brand discount, swap savings, monthly totals, empty months, traffic-light status, every badge rule, impact levels, transparency notes, budget swaps (including when green costs more), month-on-month comparison, paused purchases, quick add and personal goals. **All 33 pass.**
 
 ### 8.2 Manual test script: 15 purchases (cheap, expensive, eco, non-eco)
 Enter these in order (USD) and check the live preview matches the expected value before pressing *Log*.
@@ -141,7 +192,7 @@ Enter these in order (USD) and check the live preview matches the expected value
 | 14 | Second-hand furniture | Thrift (ethical) | 60 | 3.57 | Yes |
 | 15 | Refill / zero-waste cosmetics | The Body Shop (ethical) | 20 | 2.04 | Yes |
 
-**Checks to tick off:** totals update immediately after each log, the progress bar and status change colour as the goal is crossed, *Green Streak* appears after three green choices in a row, *First Step* appears after purchase 1, *Footprint Tracker* after purchase 10, the leaf appears on green purchases and the medal on a new badge, prices of 0 show Tara's friendly error, and *Undo last* and *Clear everything* work.
+**Checks to tick off:** totals update immediately after each log, the progress bar and status change colour as the goal is crossed, *Green Streak* appears after three green choices in a row, *First Step* appears after purchase 1, *Footprint Tracker* after purchase 10, the leaf appears on green purchases and the medal on a new badge, prices of 0 show Tara's friendly error, *Undo last* and *Clear everything* work. Also check: choosing a product type fills a sensible default price, *Quick add* re-logs a recent item in one tap, *Pause this purchase* adds to "avoided" and awards *Mindful Pause*, *Green swaps* shows "fits your budget" flags and *Use this swap* pre-fills the Log page, the dashboard shows the change versus last month, Pip's picture changes (curious, learning, excited, thriving), and each badge grows a plant in the garden.
 
 ### 8.3 User feedback log (fill in with YOUR real testers)
 
@@ -152,6 +203,22 @@ Enter these in order (USD) and check the live preview matches the expected value
 | (name, e.g. sibling) | | |
 
 *Tip: watch quietly while they use the app for two minutes without helping, and write down where they hesitate.*
+
+## 8a. Usability testing
+
+I asked 3 people to try the deployed app for about 3 minutes each. Their overall feedback was very positive and no further problems or suggestions were raised. My own testing on a tablet browser found two problems, both fixed: Pip's pictures did not appear on the deployed app (the image files were not where the code expected), so the images are now embedded in `pip_assets.py`; and some metric values were cut off on narrow screens, so the text now wraps.
+
+## 8b. Stakeholder survey (Google Forms, 17 responses)
+
+| Question | Result | What I changed in kindcart. |
+|---|---|---|
+| Would you use an app that records purchases and shows a monthly summary? | 0 said No. 15 of 17 (88%) were positive (Yes 58.8%, Probably yes, Probably, Definitely); 2 were unsure | Kept purchase logging and the monthly summary as the core of the app |
+| Have you wanted a greener product but found it difficult? | 76.5% (13 of 17) said Yes; the rest said Maybe or Once or twice; nobody said No | Simple defaults (Quick Add, typical prices), plain-language Impact Explained, and a "You're not alone" card on the Home screen |
+| What do you consider before buying? | Price 82.4% and quality 82.4%; reviews 47.1%; availability 35.3%; packaging, recommendations, ethical claims and environmental impact 17.6% each | Every greener swap shows its estimated cost and a **"Keep the quality" tip**; the Log page shows the best swap within your price |
+| How confident are you at recognising a responsible product or brand? | Average 3.35 out of 5 (9 of 17 chose 4 or 5, 5 chose 3, 3 chose 1 or 2) | **Transparency Notes** ("Why this number?") label every figure as an estimate and show the formula |
+| How would you prefer the app to encourage you? (15 responses) | Suggestions that fit my budget 40%; friendly tips without judgement 26.7%; short facts and learning cards 20%; the remaining two respondents 6.7% each. Badges and progress charts were not chosen | Made budget-fit swaps and no-guilt messages the most prominent features, added eco facts; badges and goals stay as optional extras rather than the main motivator |
+
+**Survey limitations:** small (17 people), self-selected, and likely friends and classmates, so the results show direction, not proof. This is also why the app calls its numbers "illustrative".
 
 ## 9. Ethical reflection
 
